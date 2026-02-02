@@ -1,0 +1,222 @@
+"""Platform for sensor integration."""
+
+from __future__ import annotations
+
+import logging
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfFrequency,
+    UnitOfPower,
+    UnitOfTemperature,
+)
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import DOMAIN
+from .coordinator import SajSununoDataUpdateCoordinator
+
+_LOGGER = logging.getLogger(__name__)
+
+SENSOR_ICONS = {
+    "state": "mdi:power",
+    "v-grid": "mdi:lightning-bolt",
+    "i-grid": "mdi:current-ac",
+    "f-grid": "mdi:sine-wave",
+    "p-ac": "mdi:power-plug",
+    "temp": "mdi:thermometer",
+    "e-today": "mdi:solar-power",
+    "t-today": "mdi:clock",
+    "e-total": "mdi:solar-power",
+    "CO2": "mdi:leaf",
+    "t-total": "mdi:clock",
+    "v-pv1": "mdi:solar-panel",
+    "i-pv1": "mdi:current-dc",
+    "v-pv2": "mdi:solar-panel",
+    "i-pv2": "mdi:current-dc",
+    "v-bus": "mdi:lightning-bolt",
+}
+
+SENSOR_UNITS = {
+    "v-grid": UnitOfElectricPotential.VOLT,
+    "i-grid": UnitOfElectricCurrent.AMPERE,
+    "f-grid": UnitOfFrequency.HERTZ,
+    "p-ac": UnitOfPower.WATT,
+    "temp": UnitOfTemperature.CELSIUS,
+    "e-today": UnitOfEnergy.KILO_WATT_HOUR,
+    "t-today": "h",
+    "e-total": UnitOfEnergy.KILO_WATT_HOUR,
+    "CO2": "kg",
+    "t-total": "h",
+    "v-pv1": UnitOfElectricPotential.VOLT,
+    "i-pv1": UnitOfElectricCurrent.AMPERE,
+    "v-pv2": UnitOfElectricPotential.VOLT,
+    "i-pv2": UnitOfElectricCurrent.AMPERE,
+    "v-bus": UnitOfElectricPotential.VOLT,
+}
+
+SENSOR_DEVICE_CLASSES = {
+    "v-grid": SensorDeviceClass.VOLTAGE,
+    "i-grid": SensorDeviceClass.CURRENT,
+    "f-grid": SensorDeviceClass.FREQUENCY,
+    "p-ac": SensorDeviceClass.POWER,
+    "temp": SensorDeviceClass.TEMPERATURE,
+    "e-today": SensorDeviceClass.ENERGY,
+    "e-total": SensorDeviceClass.ENERGY,
+    "v-pv1": SensorDeviceClass.VOLTAGE,
+    "i-pv1": SensorDeviceClass.CURRENT,
+    "v-pv2": SensorDeviceClass.VOLTAGE,
+    "i-pv2": SensorDeviceClass.CURRENT,
+    "v-bus": SensorDeviceClass.VOLTAGE,
+}
+
+SENSOR_STATE_CLASSES = {
+    "v-grid": SensorStateClass.MEASUREMENT,
+    "i-grid": SensorStateClass.MEASUREMENT,
+    "f-grid": SensorStateClass.MEASUREMENT,
+    "p-ac": SensorStateClass.MEASUREMENT,
+    "temp": SensorStateClass.MEASUREMENT,
+    "e-today": SensorStateClass.TOTAL_INCREASING,
+    "e-total": SensorStateClass.TOTAL_INCREASING,
+    "v-pv1": SensorStateClass.MEASUREMENT,
+    "i-pv1": SensorStateClass.MEASUREMENT,
+    "v-pv2": SensorStateClass.MEASUREMENT,
+    "i-pv2": SensorStateClass.MEASUREMENT,
+    "v-bus": SensorStateClass.MEASUREMENT,
+}
+
+SENSOR_ENTITY_CATEGORIES = {
+    "state": EntityCategory.DIAGNOSTIC,
+    "temp": EntityCategory.DIAGNOSTIC,
+    "t-today": EntityCategory.DIAGNOSTIC,
+    "t-total": EntityCategory.DIAGNOSTIC,
+    "v-bus": EntityCategory.DIAGNOSTIC,
+    "CO2": EntityCategory.DIAGNOSTIC,
+}
+
+SENSOR_FLOAT_KEYS = {
+    "v-grid",
+    "i-grid",
+    "p-ac",
+    "temp",
+    "e-today",
+    "e-total",
+    "CO2",
+}
+
+SENSOR_RETAIN_LAST_ON_UNAVAILABLE = {
+    "temp",
+    "CO2",
+    "e-total",
+    "t-total",
+}
+
+# Translation key mappings (for keys that need special handling)
+SENSOR_TRANSLATION_KEY_MAP = {
+    "CO2": "co2",
+}
+
+# List of sensor keys to create
+SENSOR_KEYS = [
+    "state",
+    "v-grid",
+    "i-grid",
+    "f-grid",
+    "p-ac",
+    "temp",
+    "e-today",
+    "t-today",
+    "e-total",
+    "CO2",
+    "t-total",
+    "v-pv1",
+    "i-pv1",
+    "v-pv2",
+    "i-pv2",
+    "v-bus",
+]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Add SAJ Sununo-TL Series Monitor sensors from a config entry."""
+    coordinator: SajSununoDataUpdateCoordinator = entry.runtime_data
+
+    sensors = [
+        SajSununoSensor(coordinator, entry, sensor_key) for sensor_key in SENSOR_KEYS
+    ]
+
+    async_add_entities(sensors, True)
+
+
+class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorEntity):
+    """Representation of a SAJ Sununo-TL Series Monitor sensor."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: SajSununoDataUpdateCoordinator,
+        entry: ConfigEntry,
+        sensor_key: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._sensor_key = sensor_key
+        self._last_value: float | str | None = None
+        self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"
+        self._attr_translation_key = SENSOR_TRANSLATION_KEY_MAP.get(
+            sensor_key, sensor_key.replace("-", "_")
+        )
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.data["device_name"],
+            manufacturer="SAJ",
+            model=entry.data.get("model", "unknown"),
+            model_id=entry.data.get("model_id", "unknown"),
+            serial_number=entry.data.get("serial_number", "unknown"),
+            sw_version=entry.data.get("sw_version", "unknown"),
+        )
+        self._attr_icon = SENSOR_ICONS.get(sensor_key, "mdi:help")
+        self._attr_native_unit_of_measurement = SENSOR_UNITS.get(sensor_key)
+        self._attr_device_class = SENSOR_DEVICE_CLASSES.get(sensor_key)
+        self._attr_state_class = SENSOR_STATE_CLASSES.get(sensor_key)
+        self._attr_entity_category = SENSOR_ENTITY_CATEGORIES.get(sensor_key)
+
+    @property
+    def native_value(self) -> float | str | None:
+        """Return the state of the sensor."""
+        if not self.available:
+            if self._sensor_key == "state":
+                return "unreachable"
+            if self._sensor_key in SENSOR_RETAIN_LAST_ON_UNAVAILABLE:
+                return self._last_value
+            return 0
+
+        value = self.coordinator.data.get(self._sensor_key)
+        if value is None:
+            return None
+        if self._sensor_key in SENSOR_FLOAT_KEYS:
+            value = float(value)
+
+        self._last_value = value
+        return value
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success

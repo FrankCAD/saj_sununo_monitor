@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up SAJ Sununo-TL Series Monitor",
+        "description": "Configure your SAJ inverter connection",
+        "data": {
+          "host": "Host IP address",
+          "device_name": "Device name",
+          "area": "Area",
+          "scan_interval": "Scan interval (seconds)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure SAJ Sununo-TL Series Monitor",
+        "description": "Update your SAJ inverter settings",
+        "data": {
+          "host": "Host IP address",
+          "device_name": "Device name",
+          "area": "Area",
+          "scan_interval": "Scan interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the inverter",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}

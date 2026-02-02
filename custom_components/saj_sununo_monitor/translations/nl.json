@@ -1,0 +1,85 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SAJ Sununo-TL Series Monitor instellen",
+        "description": "Configureer uw SAJ omvormer verbinding",
+        "data": {
+          "host": "Host IP-adres",
+          "device_name": "Apparaatnaam",
+          "area": "Gebied",
+          "scan_interval": "Scan interval (seconden)"
+        }
+      },
+      "reconfigure": {
+        "title": "SAJ Sununo-TL Series Monitor herconfigureren",
+        "description": "Werk uw SAJ omvormer instellingen bij",
+        "data": {
+          "host": "Host IP-adres",
+          "device_name": "Apparaatnaam",
+          "area": "Gebied",
+          "scan_interval": "Scan interval (seconden)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken met de omvormer",
+      "unknown": "Onverwachte fout opgetreden"
+    },
+    "abort": {
+      "already_configured": "Apparaat is al geconfigureerd"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "state": {
+        "name": "Status"
+      },
+      "v_grid": {
+        "name": "Netspanning"
+      },
+      "i_grid": {
+        "name": "Netstroom"
+      },
+      "f_grid": {
+        "name": "Netfrequentie"
+      },
+      "p_ac": {
+        "name": "Netvermogen"
+      },
+      "temp": {
+        "name": "Temperatuur"
+      },
+      "e_today": {
+        "name": "Energie vandaag"
+      },
+      "t_today": {
+        "name": "Looptijd vandaag"
+      },
+      "e_total": {
+        "name": "Totaal energieverbruik"
+      },
+      "co2": {
+        "name": "CO2 reductie"
+      },
+      "t_total": {
+        "name": "Totaal looptijd"
+      },
+      "v_pv1": {
+        "name": "PV1 spanning"
+      },
+      "i_pv1": {
+        "name": "PV1 stroom"
+      },
+      "v_pv2": {
+        "name": "PV2 spanning"
+      },
+      "i_pv2": {
+        "name": "PV2 stroom"
+      },
+      "v_bus": {
+        "name": "Busspanning"
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "domain": "saj_sununo_monitor",
+  "name": "SAJ Sununo-TL Series Monitor",
+  "codeowners": ["@FrankCAD"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/FrankCAD/saj_sununo_monitor",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "requirements": ["homeassistant>=2026.1.0"],
+  "reconfigure": 1,
+  "version": "1.0.0"
+}
