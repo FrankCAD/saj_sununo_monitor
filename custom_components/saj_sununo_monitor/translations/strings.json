@@ -7,8 +7,7 @@
         "data": {
           "host": "Host IP address",
           "device_name": "Device name",
-          "area": "Area",
-          "scan_interval": "Scan interval (seconds)"
+          "area": "Area"
         }
       },
       "reconfigure": {
@@ -17,8 +16,7 @@
         "data": {
           "host": "Host IP address",
           "device_name": "Device name",
-          "area": "Area",
-          "scan_interval": "Scan interval (seconds)"
+          "area": "Area"
         }
       }
     },

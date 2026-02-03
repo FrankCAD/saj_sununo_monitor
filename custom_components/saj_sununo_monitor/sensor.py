@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.components.sensor import (
@@ -24,7 +25,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 from .coordinator import SajSununoDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +46,10 @@ SENSOR_ICONS = {
     "i-pv1": "mdi:current-dc",
     "v-pv2": "mdi:solar-panel",
     "i-pv2": "mdi:current-dc",
+    "v-pv3": "mdi:solar-panel",
+    "i-pv3": "mdi:current-dc",
+    "v-pv4": "mdi:solar-panel",
+    "i-pv4": "mdi:current-dc",
     "v-bus": "mdi:lightning-bolt",
 }
 
@@ -63,6 +68,10 @@ SENSOR_UNITS = {
     "i-pv1": UnitOfElectricCurrent.AMPERE,
     "v-pv2": UnitOfElectricPotential.VOLT,
     "i-pv2": UnitOfElectricCurrent.AMPERE,
+    "v-pv3": UnitOfElectricPotential.VOLT,
+    "i-pv3": UnitOfElectricCurrent.AMPERE,
+    "v-pv4": UnitOfElectricPotential.VOLT,
+    "i-pv4": UnitOfElectricCurrent.AMPERE,
     "v-bus": UnitOfElectricPotential.VOLT,
 }
 
@@ -78,6 +87,10 @@ SENSOR_DEVICE_CLASSES = {
     "i-pv1": SensorDeviceClass.CURRENT,
     "v-pv2": SensorDeviceClass.VOLTAGE,
     "i-pv2": SensorDeviceClass.CURRENT,
+    "v-pv3": SensorDeviceClass.VOLTAGE,
+    "i-pv3": SensorDeviceClass.CURRENT,
+    "v-pv4": SensorDeviceClass.VOLTAGE,
+    "i-pv4": SensorDeviceClass.CURRENT,
     "v-bus": SensorDeviceClass.VOLTAGE,
 }
 
@@ -93,6 +106,10 @@ SENSOR_STATE_CLASSES = {
     "i-pv1": SensorStateClass.MEASUREMENT,
     "v-pv2": SensorStateClass.MEASUREMENT,
     "i-pv2": SensorStateClass.MEASUREMENT,
+    "v-pv3": SensorStateClass.MEASUREMENT,
+    "i-pv3": SensorStateClass.MEASUREMENT,
+    "v-pv4": SensorStateClass.MEASUREMENT,
+    "i-pv4": SensorStateClass.MEASUREMENT,
     "v-bus": SensorStateClass.MEASUREMENT,
 }
 
@@ -144,6 +161,10 @@ SENSOR_KEYS = [
     "i-pv1",
     "v-pv2",
     "i-pv2",
+    "v-pv3",
+    "i-pv3",
+    "v-pv4",
+    "i-pv4",
     "v-bus",
 ]
 
@@ -178,6 +199,8 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
         super().__init__(coordinator)
         self._sensor_key = sensor_key
         self._last_value: float | str | None = None
+        self._unavailable_since: datetime | None = None
+        self._scan_interval = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
         self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"
         self._attr_translation_key = SENSOR_TRANSLATION_KEY_MAP.get(
             sensor_key, sensor_key.replace("-", "_")
@@ -201,11 +224,27 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
     def native_value(self) -> float | str | None:
         """Return the state of the sensor."""
         if not self.available:
+            # Track when unavailability started
+            if self._unavailable_since is None:
+                self._unavailable_since = datetime.now()
+
+            # Special handling for state sensor
             if self._sensor_key == "state":
                 return "unreachable"
+
+            # Retain last value for specific sensors
             if self._sensor_key in SENSOR_RETAIN_LAST_ON_UNAVAILABLE:
                 return self._last_value
-            return 0
+
+            # After scan_interval duration, set other sensors to 0
+            if datetime.now() - self._unavailable_since >= self._scan_interval:
+                return 0
+
+            # During grace period, retain last value
+            return self._last_value
+
+        # Device is available, reset unavailability tracking
+        self._unavailable_since = None
 
         value = self.coordinator.data.get(self._sensor_key)
         if value is None:

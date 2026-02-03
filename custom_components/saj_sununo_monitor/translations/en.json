@@ -7,8 +7,7 @@
         "data": {
           "host": "Host IP address",
           "device_name": "Device name",
-          "area": "Area",
-          "scan_interval": "Scan interval (seconds)"
+          "area": "Area"
         }
       },
       "reconfigure": {
@@ -17,8 +16,7 @@
         "data": {
           "host": "Host IP address",
           "device_name": "Device name",
-          "area": "Area",
-          "scan_interval": "Scan interval (seconds)"
+          "area": "Area"
         }
       }
     },
@@ -76,6 +74,18 @@
       },
       "i_pv2": {
         "name": "PV2 current"
+      },
+      "v_pv3": {
+        "name": "PV3 voltage"
+      },
+      "i_pv3": {
+        "name": "PV3 current"
+      },
+      "v_pv4": {
+        "name": "PV4 voltage"
+      },
+      "i_pv4": {
+        "name": "PV4 current"
       },
       "v_bus": {
         "name": "Bus voltage"

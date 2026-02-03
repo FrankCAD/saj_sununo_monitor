@@ -16,7 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,7 +73,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 host="",
                 device_name="",
                 area=self._areas[0] if self._areas else "",
-                scan_interval=DEFAULT_SCAN_INTERVAL,
             ),
             errors=errors,
         )
@@ -96,7 +95,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "host": user_input["host"],
                         "device_name": user_input["device_name"],
                         "area": user_input["area"],
-                        "scan_interval": user_input["scan_interval"],
                         **device_info,
                     },
                 )
@@ -116,7 +114,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 host=current_data.get("host", ""),
                 device_name=current_data.get("device_name", ""),
                 area=current_data.get("area", self._areas[0] if self._areas else ""),
-                scan_interval=current_data.get("scan_interval", DEFAULT_SCAN_INTERVAL),
             ),
             errors=errors,
         )
@@ -133,7 +130,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         host: str,
         device_name: str,
         area: str,
-        scan_interval: int,
     ) -> vol.Schema:
         """Build configuration schema with defaults."""
         return vol.Schema(
@@ -141,7 +137,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required("host", default=host): str,
                 vol.Required("device_name", default=device_name): str,
                 vol.Required("area", default=area): vol.In(self._areas or []),
-                vol.Required("scan_interval", default=scan_interval): vol.Coerce(int),
             }
         )
 

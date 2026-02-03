@@ -10,7 +10,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_STORAGE_INTERVAL, DOMAIN
 from .coordinator import SajSununoDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,21 +20,21 @@ PLATFORMS = [Platform.SENSOR]
 # Type alias for config entry with runtime data
 type SajSununoConfigEntry = ConfigEntry[SajSununoDataUpdateCoordinator]
 
+# Fixed intervals for polling and aggregation
+SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+STORAGE_INTERVAL = timedelta(seconds=DEFAULT_STORAGE_INTERVAL)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: SajSununoConfigEntry) -> bool:
     """Set up SAJ Sununo-TL Series Monitor from a config entry."""
     _LOGGER.debug("Setting up SAJ Sununo-TL Series Monitor: %s", entry.title)
 
-    # Convert scan_interval from seconds to timedelta
-    scan_interval = timedelta(
-        seconds=entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)
-    )
-
-    # Create and initialize coordinator
+    # Create and initialize coordinator with fixed intervals
     coordinator = SajSununoDataUpdateCoordinator(
-        hass, entry.data["host"], scan_interval
+        hass, entry.data["host"], SCAN_INTERVAL, STORAGE_INTERVAL
     )
     await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_start()
 
     # Store coordinator in runtime data
     entry.runtime_data = coordinator
@@ -53,6 +53,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        if isinstance(entry, ConfigEntry) and entry.runtime_data is not None:
+            await entry.runtime_data.async_stop()
         _LOGGER.debug(
             "Successfully unloaded SAJ Sununo-TL Series Monitor: %s", entry.title
         )

@@ -2,4 +2,5 @@
 
 DOMAIN = "saj_sununo_monitor"
 PLATFORM = "sensor"
-DEFAULT_SCAN_INTERVAL = 60  # seconds
+DEFAULT_SCAN_INTERVAL = 3  # seconds
+DEFAULT_STORAGE_INTERVAL = 300  # seconds
