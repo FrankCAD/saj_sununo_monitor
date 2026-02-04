@@ -1,0 +1,21 @@
+<equipment_data>
+<Model>Sununo-TL4KA</Model>
+<Max_DC_POWER>4200</Max_DC_POWER>
+<Max_DC_Volt>550</Max_DC_Volt>
+<DC_Current_String>&nbsp&nbspMax.DC Current Input/Per String</DC_Current_String>
+<DC_Current_Content>21A/15A</DC_Current_Content>
+<DC_Conn_Sets>2</DC_Conn_Sets>
+<Num_MPPT>2</Num_MPPT>
+<Rated_AC_Power>4000</Rated_AC_Power>
+<Rated_AC_Current>17.4</Rated_AC_Current>
+<Power_Factor>0.8 leading~0.8 lagging(adjustable)</Power_Factor>
+<Consum_Night><0.2</Consum_Night>
+<Max_Eff>97.6%</Max_Eff>
+<Euro_Eff>97.0%</Euro_Eff>
+<Grid_comp> Netherlands </Grid_comp>
+<MFMW>V01.13</MFMW>
+<SFMW>V01.13</SFMW>
+<DFMW>EV1.31</DFMW>
+<SN>14020G1323NL01217</SN>
+<Product_Code>SU04KMTL1NL6ED0000</Product_Code>
+</equipment_data>

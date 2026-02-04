@@ -1,0 +1,707 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<style type="text/css">
+body,td,input {
+font-family:Arial, Helvetica, sans-serif;
+font-size:13px;
+margin:0px;
+padding:0px;
+}
+input {
+readonly:expression(this.readOnly=true);
+background-color:#EBEBE4;
+text-align:center;
+width:95%;
+white-space:nowrap;
+}
+th {
+font-size:17px;
+}
+#trend{
+height:256px;
+width:690px;
+background:url(./month_energy.jpg) no-repeat;
+padding:13px 0px 10px;
+padding-left:28px;
+position:relative;
+}
+.day_series {
+position:absolute;
+width:15px;
+bottom:50px;
+}
+.day_seriesValue {
+font-size:x-small;
+font-family:Arial,sans-serif;
+text-align:center;
+}
+.day_seriesArea1 {
+position:relative;
+width:15px;
+background-color:#FECB00;
+}
+.day_seriesArea2 {
+position:relative;
+width:15px;
+background-color:#B688E3;
+}
+.day_seriesArea3 {
+position:relative;
+width:15px;
+background-color:#32C9C9;
+}
+.day_css {
+font-family:Arial,sans-serif;
+text-align:center;
+}
+.month_seriesValue {
+font-size:small;
+font-family:Arial,sans-serif;
+text-align:center;
+}
+.month_series {
+position:absolute;
+width:45px;
+bottom:62px;
+}
+.year_series {
+position:absolute;
+width:45px;
+bottom:47px;
+}
+.month_seriesArea1 {
+position:relative;
+width:41px;
+background-color:#FECB00;
+}
+.month_seriesArea2 {
+position:relative;
+width:41px;
+background-color:#B688E3;
+}
+.month_seriesArea3 {
+position:relative;
+width:41px;
+background-color:#32C9C9;
+}
+.month_css {
+font-size:medium;
+font-family:Arial,sans-serif;
+text-align:center;
+}
+.power_scale {
+position:absolute;
+font-size:small;
+font-family:Arial,sans-serif;
+text-align:center;
+left:43px;
+}
+.grap_explain{
+position:absolute;
+font-size:medium;
+font-family:Arial,sans-serif;
+width:100px;
+left:320px;
+text-align:center;
+}
+</style>
+<script src="./javaScript.js"></script>
+<script src="./param.js"></script>
+<script type="text/javascript">
+function updateData()
+{
+  xmlhttp_par = null;
+  xmlhttp_par = GethttpXml();
+  if (null == xmlhttp_par)
+  {
+    return;
+  }
+  xmlhttp_par.onreadystatechange = display_par;
+  xmlhttp_par.open('GET', '/real_time_data.xml?t=' + Math.random(), true);
+  xmlhttp_par.send(null);
+}
+var power_trend_time = 0;
+var day_trend_time = 0;
+var month_trend_time = 0;
+var total_trend_time = 0;
+var power_scale_value = 1;
+function draw_power_scale(date_str)
+{
+  var trend = document.getElementById('trend');
+  var power_scale = new Array(6);
+  var date;
+  var i;
+  for (i = 0; i < 6; i++)
+  {
+    power_scale[i] = document.createElement('div');
+    power_scale[i].setAttribute('id', 'power_scale' + i + 1);
+    power_scale[i].setAttribute('class', 'power_scale');
+    power_scale[i].setAttribute('style', 'bottom: ' + (i * 40 + 60) + 'px;');
+    power_scale[i].appendChild(document.createTextNode(i * power_scale_value / 100));
+    trend.appendChild(power_scale[i]);
+  }
+  date = document.createElement('div');
+  date.setAttribute('class', 'grap_explain');
+  date.setAttribute('style', 'bottom: ' + 22 + 'px;');
+  date.appendChild(document.createTextNode(date_str));
+  trend.appendChild(date);
+}
+function power_trend_data()
+{
+  var xmlhttp = GethttpXml();
+  if (null == xmlhttp)
+  {
+    return;
+  }
+  xmlhttp.onreadystatechange = function ()
+  {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+    {
+      var xmlDoc = xmlhttp.responseXML.documentElement;
+      var yPower = new Array();
+      var node;
+      var i;
+      var date_str;
+      var num = xmlDoc.getElementsByTagName('count') [0].childNodes[0].nodeValue;
+      var start_point = + xmlDoc.getElementsByTagName('start') [0].childNodes[0].nodeValue + 45;
+      power_scale_value = + xmlDoc.getElementsByTagName('power_scale') [0].childNodes[0].nodeValue;
+      date_str = xmlDoc.getElementsByTagName('date') [0].childNodes[0].nodeValue;
+      if (0 == num)
+      {
+        draw_power_scale(date_str);
+        return;
+      }
+      for (i = 0; i < num; i++)
+      {
+        node = 'd' + i;
+        yPower[i] = xmlDoc.getElementsByTagName(node) [0].childNodes[0].nodeValue;
+      }
+      var data = new period(yPower, []);
+      new gov.Graphic(data, 'trend', {
+        leftDistance: start_point
+      });
+      draw_power_scale(date_str);
+    }
+  }
+  xmlhttp.open('GET', '/power_trend.xml?t=' + Math.random(), true);
+  xmlhttp.send(null);
+}
+function day_Series(value, max, index)
+{
+  this.id = index;
+  this.value = value;
+  this.max = max;
+  this.index = index;
+  this.getHeight = function ()
+  {
+    return Math.round(this.value * (200 / max)) + 'px';
+  };
+  this.getLeft = function ()
+  {
+    return ((this.index) * 20 + 52) + 'px';
+  };
+  this.toString = function ()
+  {
+    var eleSeries = document.createElement('div');
+    var eleSeriesValue = document.createElement('div');
+    var eleSeriesArea = document.createElement('div');
+    var day = document.createElement('div');
+    eleSeries.setAttribute('id', 'series' + this.id);
+    eleSeriesValue.setAttribute('id', 'seriesValue' + this.id);
+    eleSeriesArea.setAttribute('id', 'seriesArea' + this.id);
+    day.setAttribute('id', 'day' + this.id);
+    eleSeries.setAttribute('class', 'day_series');
+    eleSeriesValue.setAttribute('class', 'day_seriesValue');
+    if ((this.index % 3) == 0)
+    {
+      eleSeriesArea.setAttribute('class', 'day_seriesArea1');
+    } 
+    else if ((this.index % 3) == 1)
+    {
+      eleSeriesArea.setAttribute('class', 'day_seriesArea2');
+    } 
+    else
+    {
+      eleSeriesArea.setAttribute('class', 'day_seriesArea3');
+    }
+    day.setAttribute('class', 'day_css');
+    eleSeries.setAttribute('style', 'left: ' + this.getLeft() + ';');
+    eleSeriesValue.appendChild(document.createTextNode(this.value));
+    eleSeriesArea.setAttribute('style', 'height: ' + this.getHeight() + ';');
+    day.appendChild(document.createTextNode(this.index + 1));
+    if (0 != this.value)
+    {
+      eleSeries.appendChild(eleSeriesValue);
+      eleSeries.appendChild(eleSeriesArea);
+    }
+    eleSeries.appendChild(day);
+    return eleSeries;
+  };
+}
+function month_Series(value, max, index)
+{
+  this.id = index;
+  this.value = value;
+  this.max = max;
+  this.index = index;
+  this.getHeight = function ()
+  {
+    return Math.round(this.value * (200 / max)) + 'px';
+  };
+  this.getLeft = function ()
+  {
+    return ((this.index) * 50 + 54) + 'px';
+  };
+  this.toString = function ()
+  {
+    var eleSeries = document.createElement('div');
+    var eleSeriesValue = document.createElement('div');
+    var eleSeriesArea = document.createElement('div');
+    eleSeries.setAttribute('id', 'series' + this.id);
+    eleSeriesValue.setAttribute('id', 'seriesValue' + this.id);
+    eleSeriesArea.setAttribute('id', 'seriesArea' + this.id);
+    eleSeries.setAttribute('class', 'month_series');
+    eleSeriesValue.setAttribute('class', 'month_seriesValue');
+    if ((this.index % 3) == 0)
+    {
+      eleSeriesArea.setAttribute('class', 'month_seriesArea1');
+    } 
+    else if ((this.index % 3) == 1)
+    {
+      eleSeriesArea.setAttribute('class', 'month_seriesArea2');
+    } 
+    else
+    {
+      eleSeriesArea.setAttribute('class', 'month_seriesArea3');
+    }
+    eleSeries.setAttribute('style', 'left: ' + this.getLeft() + ';');
+    eleSeriesValue.appendChild(document.createTextNode(this.value));
+    eleSeriesArea.setAttribute('style', 'height: ' + this.getHeight() + ';');
+    if (0 != this.value)
+    {
+      eleSeries.appendChild(eleSeriesValue);
+      eleSeries.appendChild(eleSeriesArea);
+    }
+    return eleSeries;
+  };
+}
+function year_Series(value, start, max, index)
+{
+  this.id = index;
+  this.value = value;
+  this.max = max;
+  this.index = index;
+  this.start = start;
+  this.getHeight = function ()
+  {
+    return Math.round(this.value * (200 / max)) + 'px';
+  };
+  this.getLeft = function ()
+  {
+    return ((this.index) * 50 + 54) + 'px';
+  };
+  this.toString = function ()
+  {
+    var eleSeries = document.createElement('div');
+    var eleSeriesValue = document.createElement('div');
+    var eleSeriesArea = document.createElement('div');
+    var year = document.createElement('div');
+    eleSeries.setAttribute('id', 'series' + this.id);
+    eleSeriesValue.setAttribute('id', 'seriesValue' + this.id);
+    eleSeriesArea.setAttribute('id', 'seriesArea' + this.id);
+    year.setAttribute('id', 'year' + this.id);
+    eleSeries.setAttribute('class', 'year_series');
+    eleSeriesValue.setAttribute('class', 'month_seriesValue');
+    if ((this.index % 3) == 0)
+    {
+      eleSeriesArea.setAttribute('class', 'month_seriesArea1');
+    } 
+    else if ((this.index % 3) == 1)
+    {
+      eleSeriesArea.setAttribute('class', 'month_seriesArea2');
+    } 
+    else
+    {
+      eleSeriesArea.setAttribute('class', 'month_seriesArea3');
+    }
+    year.setAttribute('class', 'month_css');
+    eleSeries.setAttribute('style', 'left: ' + this.getLeft() + ';');
+    eleSeriesValue.appendChild(document.createTextNode(this.value));
+    eleSeriesArea.setAttribute('style', 'height: ' + this.getHeight() + ';');
+    year.appendChild(document.createTextNode(this.index + this.start));
+    if (0 != this.value)
+    {
+      eleSeries.appendChild(eleSeriesValue);
+      eleSeries.appendChild(eleSeriesArea);
+    }
+    eleSeries.appendChild(year);
+    return eleSeries;
+  };
+}
+function day_trend_data()
+{
+  var xmlhttp = GethttpXml();
+  if (null == xmlhttp)
+  {
+    return;
+  }
+  xmlhttp.onreadystatechange = function ()
+  {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+    {
+      var nums = new Array();
+      var max = 0.1;
+      var value;
+      var node;
+      var i;
+      var xmlDoc = xmlhttp.responseXML.documentElement;
+      var num = xmlDoc.getElementsByTagName('days') [0].childNodes[0].nodeValue;
+      if (0 == num)
+      {
+        return;
+      }
+      for (i = 0; i < num; i++)
+      {
+        node = 'd' + i;
+        value = xmlDoc.getElementsByTagName(node) [0].childNodes[0].nodeValue;
+        value /= 10;
+        if (value > max)
+        {
+          max = value;
+        }
+        nums.push(value);
+      }
+      var trend = document.getElementById('trend');
+      trend.innerHTML = '';
+      for (i = 0; i < num; i++)
+      {
+        trend.appendChild(new day_Series(nums[i], max, i).toString());
+      }
+    }
+  }
+  xmlhttp.open('GET', '/day_trend.xml?t=' + Math.random(), true);
+  xmlhttp.send(null);
+}
+function month_trend_data()
+{
+  var xmlhttp = GethttpXml();
+  if (null == xmlhttp)
+  {
+    return;
+  }
+  xmlhttp.onreadystatechange = function ()
+  {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+    {
+      var nums = new Array();
+      var max = 0.1;
+      var value;
+      var node;
+      var i;
+      var xmlDoc = xmlhttp.responseXML.documentElement;
+      for (i = 0; i < 12; i++)
+      {
+        node = 'd' + i;
+        value = xmlDoc.getElementsByTagName(node) [0].childNodes[0].nodeValue;
+        value /= 10;
+        if (value > max)
+        {
+          max = value;
+        }
+        nums.push(value);
+      }
+      var trend = document.getElementById('trend');
+      trend.innerHTML = '';
+      for (i = 0; i < 12; i++)
+      {
+        trend.appendChild(new month_Series(nums[i], max, i).toString());
+      }
+    }
+  }
+  xmlhttp.open('GET', '/month_trend.xml?t=' + Math.random(), true);
+  xmlhttp.send(null);
+}
+function total_trend_data()
+{
+  var xmlhttp = GethttpXml();
+  if (null == xmlhttp)
+  {
+    return;
+  }
+  xmlhttp.onreadystatechange = function ()
+  {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+    {
+      var nums = new Array();
+      var max = 0.1;
+      var value;
+      var node;
+      var i;
+      var xmlDoc = xmlhttp.responseXML.documentElement;
+      var start_year = + xmlDoc.getElementsByTagName('start') [0].childNodes[0].nodeValue;
+      for (i = 0; i < 12; i++)
+      {
+        node = 'd' + i;
+        value = xmlDoc.getElementsByTagName(node) [0].childNodes[0].nodeValue;
+        value /= 10;
+        if (value > max)
+        {
+          max = value;
+        }
+        nums.push(value);
+      }
+      var trend = document.getElementById('trend');
+      trend.innerHTML = '';
+      for (i = 0; i < 12; i++)
+      {
+        trend.appendChild(new year_Series(nums[i], start_year, max, i).toString());
+      }
+    }
+  }
+  xmlhttp.open('GET', '/year_trend.xml?t=' + Math.random(), true);
+  xmlhttp.send(null);
+}
+function power_trend()
+{
+  if (0 != day_trend_time)
+  {
+    clearInterval(day_trend_time);
+    day_trend_time = 0;
+  }
+  if (0 != month_trend_time)
+  {
+    clearInterval(month_trend_time);
+    month_trend_time = 0;
+  }
+  if (0 != total_trend_time)
+  {
+    clearInterval(total_trend_time);
+    total_trend_time = 0;
+  }
+  var trend = document.getElementById('trend');
+  trend.innerHTML = '';
+  trend.style.backgroundImage = 'url(./power_trend.gif)';
+  power_trend_data();
+  if (0 == power_trend_time)
+  {
+    power_trend_time = setInterval('power_trend_data()', 240000);
+  }
+}
+function day_trend()
+{
+  if (0 != power_trend_time)
+  {
+    clearInterval(power_trend_time);
+    power_trend_time = 0;
+  }
+  if (0 != month_trend_time)
+  {
+    clearInterval(month_trend_time);
+    month_trend_time = 0;
+  }
+  if (0 != total_trend_time)
+  {
+    clearInterval(total_trend_time);
+    total_trend_time = 0;
+  }
+  document.getElementById('trend').innerHTML = '';
+  document.getElementById('trend').style.backgroundImage = 'url(./month_energy.gif)';
+  day_trend_data();
+  if (0 == day_trend_time)
+  {
+    day_trend_time = setInterval('day_trend_data()', 60000);
+  }
+}
+function month_trend()
+{
+  if (0 != day_trend_time)
+  {
+    clearInterval(day_trend_time);
+    day_trend_time = 0;
+  }
+  if (0 != power_trend_time)
+  {
+    clearInterval(power_trend_time);
+    power_trend_time = 0;
+  }
+  if (0 != total_trend_time)
+  {
+    clearInterval(total_trend_time);
+    total_trend_time = 0;
+  }
+  document.getElementById('trend').innerHTML = '';
+  document.getElementById('trend').style.backgroundImage = 'url(./year_energy.gif)';
+  month_trend_data();
+  if (0 == month_trend_time)
+  {
+    month_trend_time = setInterval('month_trend_data()', 60000);
+  }
+}
+function total_trend()
+{
+  if (0 != day_trend_time)
+  {
+    clearInterval(day_trend_time);
+    day_trend_time = 0;
+  }
+  if (0 != power_trend_time)
+  {
+    clearInterval(power_trend_time);
+    power_trend_time = 0;
+  }
+  if (0 != month_trend_time)
+  {
+    clearInterval(month_trend_time);
+    month_trend_time = 0;
+  }
+  document.getElementById('trend').innerHTML = '';
+  document.getElementById('trend').style.backgroundImage = 'url(./total_energy.gif)';
+  total_trend_data();
+  if (0 == total_trend_time)
+  {
+    total_trend_time = setInterval('total_trend_data()', 60000);
+  }
+}
+function getData()
+{
+  if (
+    (
+      navigator.appName == 'Microsoft Internet Explorer' &&
+      navigator.appVersion.split(';') [1].replace(/[ ]/g, '') == 'MSIE6.0'
+    ) ||
+    (
+      navigator.appName == 'Microsoft Internet Explorer' &&
+      navigator.appVersion.split(';') [1].replace(/[ ]/g, '') == 'MSIE7.0'
+    )
+  )
+  {
+    var rck = confirm(
+      'Your IE browser version is low so that you cann\'t view the normal energy trend graphs, please upgrade your IE(IE8 for winxp, IE8 or a more advanced version for win7) at www.microsoft.com.\r\nif your IE browser is the newest but can\'t display the energy trend graphs, please turn off "Compatibility View" of the IE(Menu bar->Tools->Compatibility View).\r\nWill you visit www.microsoft.com?'
+    );
+    if (rck == true)
+    {
+      window.open('http://www.Microsoft.com');
+    }
+  }
+  setInterval('updateData()', 2000);
+  day_trend();
+  updateData();
+}
+</script>
+
+</head>
+
+<body bgcolor="#FFFFFF" onload="getData()">
+
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" bgcolor="C0C0C0">Monitoring Data</td>
+</tr>
+<tr>
+<td>&nbsp</td>
+</tr>
+</table>
+
+<table width="96%" border="4" align="center" bordercolor="#C0C0C0" cellpadding="0" cellspacing="0">
+
+<tr>
+<th colspan="2" width="22%">
+DC Input
+</th>
+<th colspan="2" width="22%">
+AC Output
+</th>
+<th colspan="2" width="28%">
+Statistics
+</th>
+<th colspan="2" width="28%">
+Others
+</th>
+
+<tr>
+<td width="12%" align="right" style="white-space:nowrap;">PV1 Voltage:</td>
+<td width="10%"><input id="v-pv1"></td>
+<td width="12%" align="right">Grid Power :</td>
+<td width="10%" ><input id="p-ac"></td>
+<td width="15%" align="right">Today Energy:</td>
+<td width="13%"><input id="e-today"></td>
+<td width="16%" align="right">Inverter State:</td>
+<td width="12%"><input id="Inverter-Stare"></td>
+</tr>
+
+<tr>
+<td width="12%" align="right">PV1 Current:</td>
+<td width="10%"><input id="i-pv1"></td>
+<td width="12%" align="right" style="white-space:nowrap;">Grid Voltage:</td>
+<td width="10%"><input id="v-grid"></td>
+<td width="15%" align="right">Total Energy:</td>
+<td width="13%"><input id="e-total"></td>
+<td width="16%" align="right">Inverter Temperature:</td>
+<td width="12%"><input id="temp"></td>
+</tr>
+
+<tr>
+<td width="12%" align="right">PV2 Voltage:</td>
+<td width="10%"><input id="v-pv2"></td>
+<td width="12%" align="right">Grid Current:</td>
+<td width="10%"><input id="i-grid"></td>
+<td width="15%" align="right" style="white-space:nowrap;">Today Running Time:</td>
+<td width="13%"><input id="t-today"></td>
+<td width="16%" align="right">Bus Voltage:</td>
+<td width="12%"><input id="v-bus"></td>
+</tr>
+
+<tr>
+<td width="12%" align="right">PV2 Current:</td>
+<td width="10%"><input id="i-pv2"></td>
+<td width="12%" align="right">Grid Freq:</td>
+<td width="10%"><input id="f-grid"></td>
+<td width="15%" align="right">Total Running Time:</td>
+<td width="13%"><input id="t-total"></td>
+<td width="16%" align="right" style="white-space:nowrap;">CO2 Emission Reduction:</td>
+<td width="12%"><input id="CO2"></td>
+</tr>
+
+</table>
+
+<table width="100%" border="0">
+<tr>
+<td>&nbsp</td>
+</tr>
+<tr>
+<td align="center" bgcolor="C0C0C0">Energy Trend</td>
+</tr>
+<tr>
+<td>&nbsp</td>
+</tr>
+</table>
+
+<table align="center" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td>&nbsp</td>
+<td></td>
+<td></td>
+<td width=80px></td>
+<td align="center"><button type="button" onclick="power_trend()">&nbsp&nbsp Day &nbsp&nbsp</button></td>
+<td align="center"><button type="button" onclick="day_trend()">&nbsp Month &nbsp</button></td>
+<td align="center"><button type="button" onclick="month_trend()">&nbsp Year &nbsp</button></td>
+<td align="center"><button type="button" onclick="total_trend()">&nbsp Total &nbsp</button></td>
+<td width=80px></td>
+</tr>
+<tr>
+<td>&nbsp&nbsp&nbsp</td>
+<td><img src="./saj_inverter.jpg"></td>
+<td>&nbsp&nbsp</td>
+<td colspan=6><div id="trend" style="width:690px;height:256px"></div></td>
+</tr>
+</table>
+
+<table bgcolor="C0C0C0" width="100%"border="0">
+<tr>
+<td>&nbsp</td>
+</tr>
+</table>
+
+</body>
+</html>

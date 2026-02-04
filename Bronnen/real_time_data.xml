@@ -1,0 +1,18 @@
+<real_time_data>
+<state>Normal</state>
+<v-grid>233.5</v-grid>
+<i-grid>0.72</i-grid>
+<f-grid>49.98</f-grid>
+<p-ac>118</p-ac>
+<temp>23.4</temp>
+<e-today>2.2</e-today>
+<t-today>7.1</t-today>
+<e-total>35288.8</e-total>
+<CO2>35182.93</CO2>
+<t-total>52848.7</t-total>
+<v-pv1>292.4</v-pv1>
+<i-pv1>0.23</i-pv1>
+<v-pv2>288.0 V</v-pv2>
+<i-pv2>0.32 A</i-pv2>
+<v-bus>359.9</v-bus>
+</real_time_data>
