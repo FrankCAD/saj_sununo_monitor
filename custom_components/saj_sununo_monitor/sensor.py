@@ -213,6 +213,7 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
             model_id=entry.data.get("model_id", "unknown"),
             serial_number=entry.data.get("serial_number", "unknown"),
             sw_version=entry.data.get("sw_version", "unknown"),
+            configuration_url=f"http://{entry.data['host']}",
         )
         self._attr_icon = SENSOR_ICONS.get(sensor_key, "mdi:help")
         self._attr_native_unit_of_measurement = SENSOR_UNITS.get(sensor_key)
