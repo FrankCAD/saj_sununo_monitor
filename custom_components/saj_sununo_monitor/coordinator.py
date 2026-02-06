@@ -77,7 +77,8 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._scan_interval = scan_interval
         self._storage_interval = storage_interval
         self._buffer: dict[str, list[float]] = {key: [] for key in AVERAGE_KEYS}
-        self._last_sample: dict[str, Any] | None = None
+        self._interval_last_sample: dict[str, Any] | None = None
+        self._interval_has_sample: bool = False
         self._lock = asyncio.Lock()
         self._unsub_scan: Callable[[], None] | None = None
         self._unsub_storage: Callable[[], None] | None = None
@@ -131,22 +132,19 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_publish_means(self, _: datetime) -> None:
         """Publish averaged data at the storage interval."""
         async with self._lock:
-            if self._last_sample is None:
-                self.async_set_update_error(UpdateFailed("No samples collected yet"))
-                return
-
-            mean_data = self._build_mean_data()
-            if not mean_data:
+            if not self._interval_has_sample:
                 self.async_set_update_error(UpdateFailed("No samples collected"))
                 return
 
+            mean_data = self._build_mean_data()
             self._clear_buffer()
 
         self.async_set_updated_data(mean_data)
 
     def _add_sample(self, data: dict[str, Any]) -> None:
         """Store a sample for averaging."""
-        self._last_sample = data
+        self._interval_last_sample = data
+        self._interval_has_sample = True
         for key in AVERAGE_KEYS:
             if (value := data.get(key)) is None:
                 continue
@@ -159,13 +157,15 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Clear buffered samples after publishing."""
         for values in self._buffer.values():
             values.clear()
+        self._interval_last_sample = None
+        self._interval_has_sample = False
 
     def _build_mean_data(self) -> dict[str, Any]:
         """Build averaged data using buffered samples and last known values."""
-        if self._last_sample is None:
+        if self._interval_last_sample is None:
             return {}
 
-        mean_data = dict(self._last_sample)
+        mean_data = dict(self._interval_last_sample)
         for key, values in self._buffer.items():
             if values:
                 mean_data[key] = sum(values) / len(values)

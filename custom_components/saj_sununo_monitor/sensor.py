@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import datetime
 import logging
 
 from homeassistant.components.sensor import (
@@ -16,8 +16,10 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfFrequency,
+    UnitOfMass,
     UnitOfPower,
     UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -25,7 +27,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DOMAIN
 from .coordinator import SajSununoDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,10 +62,10 @@ SENSOR_UNITS = {
     "p-ac": UnitOfPower.WATT,
     "temp": UnitOfTemperature.CELSIUS,
     "e-today": UnitOfEnergy.KILO_WATT_HOUR,
-    "t-today": "h",
+    "t-today": UnitOfTime.HOURS,
     "e-total": UnitOfEnergy.KILO_WATT_HOUR,
-    "CO2": "kg",
-    "t-total": "h",
+    "CO2": UnitOfMass.KILOGRAMS,
+    "t-total": UnitOfTime.HOURS,
     "v-pv1": UnitOfElectricPotential.VOLT,
     "i-pv1": UnitOfElectricCurrent.AMPERE,
     "v-pv2": UnitOfElectricPotential.VOLT,
@@ -128,15 +130,18 @@ SENSOR_FLOAT_KEYS = {
     "p-ac",
     "temp",
     "e-today",
+    "t-today",
     "e-total",
+    "t-total",
     "CO2",
 }
 
 SENSOR_RETAIN_LAST_ON_UNAVAILABLE = {
-    "temp",
     "CO2",
     "e-total",
     "t-total",
+    "e-today",
+    "t-today",
 }
 
 # Translation key mappings (for keys that need special handling)
@@ -199,8 +204,7 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
         super().__init__(coordinator)
         self._sensor_key = sensor_key
         self._last_value: float | str | None = None
-        self._unavailable_since: datetime | None = None
-        self._scan_interval = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
+        self._last_reset_date: datetime.date | None = None
         self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"
         self._attr_translation_key = SENSOR_TRANSLATION_KEY_MAP.get(
             sensor_key, sensor_key.replace("-", "_")
@@ -222,41 +226,51 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
         self._attr_entity_category = SENSOR_ENTITY_CATEGORIES.get(sensor_key)
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        # Only the state sensor shows as unavailable when coordinator fails
+        if self._sensor_key == "state":
+            return self.coordinator.last_update_success
+        # All other sensors remain available even when coordinator fails
+        return True
+
+    @property
     def native_value(self) -> float | str | None:
         """Return the state of the sensor."""
-        if not self.available:
-            # Track when unavailability started
-            if self._unavailable_since is None:
-                self._unavailable_since = datetime.now()
-
-            # Special handling for state sensor
+        # If coordinator failed to update (device unavailable)
+        if not self.coordinator.last_update_success:
             if self._sensor_key == "state":
-                return "unreachable"
-
-            # Retain last value for specific sensors
+                return None
+            # Sensors that retain last value
             if self._sensor_key in SENSOR_RETAIN_LAST_ON_UNAVAILABLE:
+                # Check for midnight reset for daily sensors
+                if self._sensor_key in ("e-today", "t-today"):
+                    return self._check_midnight_reset()
                 return self._last_value
+            # All other sensors return 0.0
+            return 0.0
 
-            # After scan_interval duration, set other sensors to 0
-            if datetime.now() - self._unavailable_since >= self._scan_interval:
-                return 0
-
-            # During grace period, retain last value
-            return self._last_value
-
-        # Device is available, reset unavailability tracking
-        self._unavailable_since = None
-
+        # Device is available, get current value
         value = self.coordinator.data.get(self._sensor_key)
         if value is None:
             return None
         if self._sensor_key in SENSOR_FLOAT_KEYS:
             value = float(value)
 
+        # Update last reset date for daily sensors
+        if self._sensor_key in ("e-today", "t-today"):
+            self._last_reset_date = datetime.datetime.now().date()
+
         self._last_value = value
         return value
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return self.coordinator.last_update_success
+    def _check_midnight_reset(self) -> float:
+        """Check if daily sensors need midnight reset when unavailable."""
+        current_date = datetime.datetime.now().date()
+        if self._last_reset_date is None or self._last_reset_date != current_date:
+            # New day detected while unavailable, reset to 0.0
+            self._last_reset_date = current_date
+            self._last_value = 0.0
+            return 0.0
+        # Same day, return last value
+        return self._last_value if isinstance(self._last_value, float) else 0.0
