@@ -237,16 +237,23 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
     @property
     def native_value(self) -> float | str | None:
         """Return the state of the sensor."""
+        # Check for midnight reset for daily sensors (always check first)
+        if self._sensor_key in ("e-today", "t-today"):
+            current_date = datetime.datetime.now().date()
+            if self._last_reset_date is None or self._last_reset_date != current_date:
+                # New day detected, reset tracking
+                self._last_reset_date = current_date
+                self._last_value = 0.0
+                # Return 0.0 for the first reading of the new day
+                return 0.0
+
         # If coordinator failed to update (device unavailable)
         if not self.coordinator.last_update_success:
             if self._sensor_key == "state":
                 return None
             # Sensors that retain last value
             if self._sensor_key in SENSOR_RETAIN_LAST_ON_UNAVAILABLE:
-                # Check for midnight reset for daily sensors
-                if self._sensor_key in ("e-today", "t-today"):
-                    return self._check_midnight_reset()
-                return self._last_value
+                return self._last_value if self._last_value is not None else 0.0
             # All other sensors return 0.0
             return 0.0
 
@@ -257,20 +264,5 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
         if self._sensor_key in SENSOR_FLOAT_KEYS:
             value = float(value)
 
-        # Update last reset date for daily sensors
-        if self._sensor_key in ("e-today", "t-today"):
-            self._last_reset_date = datetime.datetime.now().date()
-
         self._last_value = value
         return value
-
-    def _check_midnight_reset(self) -> float:
-        """Check if daily sensors need midnight reset when unavailable."""
-        current_date = datetime.datetime.now().date()
-        if self._last_reset_date is None or self._last_reset_date != current_date:
-            # New day detected while unavailable, reset to 0.0
-            self._last_reset_date = current_date
-            self._last_value = 0.0
-            return 0.0
-        # Same day, return last value
-        return self._last_value if isinstance(self._last_value, float) else 0.0

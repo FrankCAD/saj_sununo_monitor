@@ -203,12 +203,12 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for key, (xml_tag, converter) in XML_FIELDS.items():
             element = root.find(xml_tag)
             if element is None or element.text is None:
-                # Only warn once for missing PV sensors
+                # Only inform once for missing PV sensors
                 if (
                     key.startswith(("v-pv", "i-pv"))
                     and key not in self._missing_pv_sensors
                 ):
-                    _LOGGER.warning("Missing PV sensor XML element: %s", xml_tag)
+                    _LOGGER.info("Missing PV sensor XML element: %s", xml_tag)
                     self._missing_pv_sensors.add(key)
                 elif not key.startswith(("v-pv", "i-pv")):
                     _LOGGER.warning("Missing XML element: %s", xml_tag)
