@@ -205,6 +205,7 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
         self._sensor_key = sensor_key
         self._last_value: float | str | None = None
         self._last_reset_date: datetime.date | None = None
+        self._reset_triggered_today = False
         self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"
         self._attr_translation_key = SENSOR_TRANSLATION_KEY_MAP.get(
             sensor_key, sensor_key.replace("-", "_")
@@ -241,10 +242,14 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
         if self._sensor_key in ("e-today", "t-today"):
             current_date = datetime.datetime.now().date()
             if self._last_reset_date is None or self._last_reset_date != current_date:
-                # New day detected, reset tracking
+                # New day detected, trigger reset
                 self._last_reset_date = current_date
                 self._last_value = 0.0
-                # Return 0.0 for the first reading of the new day
+                self._reset_triggered_today = True
+                # Return 0.0 for the reset day
+                return 0.0
+            # Same day as reset - keep returning 0.0 until next day
+            if self._reset_triggered_today:
                 return 0.0
 
         # If coordinator failed to update (device unavailable)
@@ -263,6 +268,12 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
             return None
         if self._sensor_key in SENSOR_FLOAT_KEYS:
             value = float(value)
+
+        # For daily reset sensors, once we get a non-zero value from device on reset day,
+        # it means the device has moved past reset/initialization
+        if self._sensor_key in ("e-today", "t-today") and self._reset_triggered_today:
+            # Clear the reset flag once device reports any value (reset is complete)
+            self._reset_triggered_today = False
 
         self._last_value = value
         return value
