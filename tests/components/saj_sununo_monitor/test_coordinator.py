@@ -6,12 +6,11 @@ from datetime import timedelta
 from pathlib import Path
 import sys
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 # Add config path to sys.path for custom component imports
 config_path = Path(__file__).parent.parent.parent.parent / "config"
@@ -19,7 +18,6 @@ if str(config_path) not in sys.path:
     sys.path.insert(0, str(config_path))
 
 from custom_components.saj_sununo_monitor.coordinator import (
-    AVERAGE_KEYS,
     SajSununoDataUpdateCoordinator,
 )
 
