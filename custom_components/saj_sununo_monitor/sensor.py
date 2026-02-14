@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import logging
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -29,8 +28,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import SajSununoDataUpdateCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 SENSOR_ICONS = {
     "state": "mdi:power",
@@ -247,10 +244,10 @@ class SajSununoSensor(CoordinatorEntity[SajSununoDataUpdateCoordinator], SensorE
                 self._last_value = 0.0
                 self._reset_triggered_today = True
                 # Return 0.0 for the reset day
-                return 0.0
+                value = 0.0
             # Same day as reset - keep returning 0.0 until next day
             if self._reset_triggered_today:
-                return 0.0
+                value = 0.0
 
         # If coordinator failed to update (device unavailable)
         if not self.coordinator.last_update_success:

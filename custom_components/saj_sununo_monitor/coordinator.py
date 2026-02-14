@@ -183,12 +183,12 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     xml_content = await response.text()
                     return self._parse_xml_data(xml_content)
         except TimeoutError as err:
-            _LOGGER.error(
+            _LOGGER.warning(
                 "Timeout while connecting to SAJ Sununo inverter at %s", self.host
             )
             raise UpdateFailed(f"Timeout connecting to {self.host}") from err
         except Exception as err:  # Catch aiohttp, XML parsing, and other errors
-            _LOGGER.error("Error fetching data from %s: %s", self.host, err)
+            _LOGGER.warning("Error fetching data from %s: %s", self.host, err)
             raise UpdateFailed(f"Error fetching data: {err}") from err
 
     def _parse_xml_data(self, xml_content: str) -> dict[str, Any]:
@@ -196,7 +196,7 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             root = ET.fromstring(xml_content)
         except ET.ParseError as err:
-            _LOGGER.error("Error parsing XML data: %s", err)
+            _LOGGER.warning("Error parsing XML data: %s", err)
             raise UpdateFailed(f"XML parse error: {err}") from err
 
         data: dict[str, Any] = {}
@@ -211,7 +211,7 @@ class SajSununoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.info("Missing PV sensor XML element: %s", xml_tag)
                     self._missing_pv_sensors.add(key)
                 elif not key.startswith(("v-pv", "i-pv")):
-                    _LOGGER.warning("Missing XML element: %s", xml_tag)
+                    _LOGGER.info("Missing XML element: %s", xml_tag)
                 continue
 
             try:
